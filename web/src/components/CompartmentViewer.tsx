@@ -115,15 +115,6 @@ function Model() {
     }
   }
 
-  useEffect(() => {
-    clonedScene.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        child.castShadow = true
-        child.receiveShadow = true
-      }
-    })
-  }, [clonedScene])
-
   return (
     <group onClick={handleClick} onPointerMissed={() => selectItem(null)}>
       <primitive object={clonedScene} />
@@ -135,19 +126,7 @@ function Lights() {
   return (
     <>
       <ambientLight intensity={0.65} />
-      <directionalLight
-        position={[10, 12, 8]}
-        intensity={1.6}
-        castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-        shadow-camera-near={1}
-        shadow-camera-far={30}
-        shadow-camera-left={-8}
-        shadow-camera-right={8}
-        shadow-camera-top={8}
-        shadow-camera-bottom={-8}
-      />
+      <directionalLight position={[10, 12, 8]} intensity={1.4} />
       <directionalLight position={[-8, 6, -5]} intensity={0.5} />
       <pointLight position={[0, 4, 2]} intensity={0.6} color="#fff5e6" />
     </>
@@ -157,7 +136,7 @@ function Lights() {
 export function CompartmentViewer() {
   return (
     <div className="relative h-full w-full bg-gradient-to-br from-[#e8f4fc] to-[#f5efe6]">
-      <Canvas shadows>
+      <Canvas>
         <CameraAnimator />
         <Lights />
         <Model />
