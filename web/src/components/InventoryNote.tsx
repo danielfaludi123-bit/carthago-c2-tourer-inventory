@@ -111,7 +111,7 @@ export function InventoryNote() {
 
   return (
     <>
-      <div className="note-paper absolute bottom-4 right-4 flex w-80 flex-col rounded-sm shadow-lg">
+      <div className="note-paper absolute bottom-4 right-4 flex w-72 flex-col rounded-sm shadow-lg">
         {/* Notiz-Kopf */}
         <div className="flex items-center justify-between border-b border-paper-line bg-[#fff8e1] px-3 py-2">
           <div className="flex items-center gap-2">
@@ -139,9 +139,9 @@ export function InventoryNote() {
         </div>
 
         {/* Listeneinträge */}
-        <div className="max-h-72 overflow-y-auto">
+        <div className="max-h-56 overflow-y-auto">
           {filteredItems.length === 0 ? (
-            <div className="px-3 py-6 text-center text-sm text-stone-400">
+            <div className="px-3 py-5 text-center text-sm text-stone-400">
               <p>Noch nichts eingetragen.</p>
               <p className="mt-1 text-xs">Klicke auf +, um Gegenstände hinzuzufügen.</p>
             </div>

@@ -4,7 +4,7 @@ import { useRef, useEffect, useMemo, useState } from 'react'
 import * as THREE from 'three'
 import { useInventoryStore } from '../stores/inventoryStore'
 
-const DEFAULT_CAMERA_POSITION: [number, number, number] = [8, 8, 10]
+const DEFAULT_CAMERA_POSITION: [number, number, number] = [1.5, 9, 11]
 const DEFAULT_CAMERA_TARGET: [number, number, number] = [0, 0, 0]
 
 function CameraAnimator() {
@@ -39,11 +39,11 @@ function CameraAnimator() {
     const targetPosition = new THREE.Vector3(...targetPos)
     const targetLookAt = new THREE.Vector3(...lookAt)
 
-    // Smoothly interpolate camera position
-    camera.position.lerp(targetPosition, 1 - Math.exp(-3 * delta))
+    // Smoothly interpolate camera position (slower for nicer animation)
+    camera.position.lerp(targetPosition, 1 - Math.exp(-2.2 * delta))
 
     // Smoothly interpolate lookAt target
-    currentTargetRef.current.lerp(targetLookAt, 1 - Math.exp(-3 * delta))
+    currentTargetRef.current.lerp(targetLookAt, 1 - Math.exp(-2.2 * delta))
     camera.lookAt(currentTargetRef.current)
   })
 
