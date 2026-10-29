@@ -115,6 +115,15 @@ function Model() {
     }
   }
 
+  useEffect(() => {
+    clonedScene.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.castShadow = true
+        child.receiveShadow = true
+      }
+    })
+  }, [clonedScene])
+
   return (
     <group onClick={handleClick} onPointerMissed={() => selectItem(null)}>
       <primitive object={clonedScene} />
@@ -125,10 +134,22 @@ function Model() {
 function Lights() {
   return (
     <>
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[10, 12, 8]} intensity={1.3} />
-      <directionalLight position={[-8, 6, -5]} intensity={0.6} />
-      <pointLight position={[0, 4, 2]} intensity={0.8} color="#fff5e6" />
+      <ambientLight intensity={0.65} />
+      <directionalLight
+        position={[10, 12, 8]}
+        intensity={1.6}
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-camera-near={0.5}
+        shadow-camera-far={50}
+        shadow-camera-left={-10}
+        shadow-camera-right={10}
+        shadow-camera-top={10}
+        shadow-camera-bottom={-10}
+      />
+      <directionalLight position={[-8, 6, -5]} intensity={0.5} />
+      <pointLight position={[0, 4, 2]} intensity={0.6} color="#fff5e6" />
     </>
   )
 }
