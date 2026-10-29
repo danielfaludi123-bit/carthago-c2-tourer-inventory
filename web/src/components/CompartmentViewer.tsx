@@ -4,8 +4,8 @@ import { useRef, useEffect, useMemo, useState } from 'react'
 import * as THREE from 'three'
 import { useInventoryStore } from '../stores/inventoryStore'
 
-const DEFAULT_CAMERA_POSITION: [number, number, number] = [1.5, 9, 11]
-const DEFAULT_CAMERA_TARGET: [number, number, number] = [0, 0, 0]
+const DEFAULT_CAMERA_POSITION: [number, number, number] = [2.0, 9.5, 7.0]
+const DEFAULT_CAMERA_TARGET: [number, number, number] = [0, 0, 0.6]
 
 function CameraAnimator() {
   const selectedItemId = useInventoryStore((state) => state.selectedItemId)
