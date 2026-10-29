@@ -4,14 +4,15 @@ import type { AppState, InventoryItem } from '../types'
 import { compartments } from '../data/compartments'
 
 interface InventoryStore extends AppState {
-  selectCompartment: (id: string | null) => void
+  selectItem: (id: string | null) => void
+  setSearchQuery: (query: string) => void
   addItem: (item: Omit<InventoryItem, 'id'>) => void
   removeItem: (id: string) => void
   updateQuantity: (id: string, delta: number) => void
   toggleChecked: (id: string) => void
   updateItemWeight: (id: string, weightKg: number) => void
-  toggleDarkMode: () => void
-  getCompartmentItems: (compartmentId: string) => InventoryItem[]
+  getItemById: (id: string) => InventoryItem | undefined
+  getItemsByCompartment: (compartmentId: string) => InventoryItem[]
   getTotalWeight: () => number
   getCompartmentWeight: (compartmentId: string) => number
 }
@@ -23,17 +24,15 @@ export const useInventoryStore = create<InventoryStore>()(
     (set, get) => ({
       compartments,
       items: [],
-      selectedCompartmentId: null,
-      darkMode: false,
+      selectedItemId: null,
+      searchQuery: '',
 
-      selectCompartment: (id) => set({ selectedCompartmentId: id }),
+      selectItem: (id) => set({ selectedItemId: id }),
+      setSearchQuery: (query) => set({ searchQuery: query }),
 
       addItem: (item) =>
         set((state) => ({
-          items: [
-            ...state.items,
-            { ...item, id: generateId() },
-          ],
+          items: [...state.items, { ...item, id: generateId() }],
         })),
 
       removeItem: (id) =>
@@ -66,18 +65,9 @@ export const useInventoryStore = create<InventoryStore>()(
           ),
         })),
 
-      toggleDarkMode: () =>
-        set((state) => {
-          const newDarkMode = !state.darkMode
-          if (newDarkMode) {
-            document.documentElement.classList.add('dark')
-          } else {
-            document.documentElement.classList.remove('dark')
-          }
-          return { darkMode: newDarkMode }
-        }),
+      getItemById: (id) => get().items.find((item) => item.id === id),
 
-      getCompartmentItems: (compartmentId) =>
+      getItemsByCompartment: (compartmentId) =>
         get().items.filter((item) => item.compartmentId === compartmentId),
 
       getTotalWeight: () =>
@@ -92,12 +82,7 @@ export const useInventoryStore = create<InventoryStore>()(
           .reduce((sum, item) => sum + (item.weightKg || 0) * item.quantity, 0),
     }),
     {
-      name: 'carthago-inventory',
-      onRehydrateStorage: () => (state) => {
-        if (state?.darkMode) {
-          document.documentElement.classList.add('dark')
-        }
-      },
+      name: 'carthago-inventory-v2',
     },
   ),
 )

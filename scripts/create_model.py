@@ -6,38 +6,37 @@ import math
 bpy.ops.object.select_all(action='SELECT')
 bpy.ops.object.delete(use_global=False)
 
-# Remove default collections and create our own
 for col in list(bpy.data.collections):
     bpy.data.collections.remove(col)
 root_col = bpy.data.collections.new("CarthagoC2Tourer")
 bpy.context.scene.collection.children.link(root_col)
 
-# Set units
 scene = bpy.context.scene
 scene.unit_settings.system = 'METRIC'
 scene.unit_settings.scale_length = 1.0
 scene.unit_settings.length_unit = 'METERS'
 
-# Vehicle dimensions (meters)
+# Dimensions
 LENGTH = 7.36
 WIDTH = 2.17
-HEIGHT = 2.95
-WALL_THICKNESS = 0.05
-FLOOR_THICKNESS = 0.22  # double floor height
+HEIGHT = 2.40  # slightly lower for cleaner look
+ROOF_HEIGHT = 2.95
+WHEEL_RADIUS = 0.36
+WHEEL_WIDTH = 0.22
 
 # Colors
-COLOR_BODY = (0.95, 0.95, 0.95, 1.0)
-COLOR_WINDOW = (0.6, 0.8, 0.95, 0.4)
-COLOR_FLOOR = (0.75, 0.7, 0.65, 1.0)
-COLOR_WOOD = (0.72, 0.55, 0.38, 1.0)
-COLOR_COMPARTMENT = (0.88, 0.66, 0.52, 0.35)  # terracotta transparent
-COLOR_COMPARTMENT_SELECTED = (0.88, 0.48, 0.37, 0.65)
-COLOR_BED = (0.85, 0.82, 0.78, 1.0)
-COLOR_SEAT = (0.55, 0.55, 0.55, 1.0)
+COLOR_BODY = (0.97, 0.97, 0.97, 1.0)
+COLOR_WINDOW = (0.35, 0.45, 0.55, 0.55)
+COLOR_TIRE = (0.15, 0.15, 0.15, 1.0)
+COLOR_RIM = (0.7, 0.7, 0.75, 1.0)
+COLOR_MARKER = (0.88, 0.48, 0.37, 1.0)  # terracotta
+COLOR_MARKER_SELECTED = (0.95, 0.25, 0.15, 1.0)
+COLOR_MARKER_HOVER = (0.95, 0.65, 0.5, 1.0)
+COLOR_LINE = (0.6, 0.6, 0.6, 1.0)
 
 materials = {}
 
-def make_material(name, color, alpha=1.0, metallic=0.0, roughness=0.7):
+def make_material(name, color, alpha=1.0, metallic=0.0, roughness=0.6):
     mat = bpy.data.materials.new(name=name)
     mat.use_nodes = True
     bsdf = mat.node_tree.nodes["Principled BSDF"]
@@ -51,16 +50,15 @@ def make_material(name, color, alpha=1.0, metallic=0.0, roughness=0.7):
     return mat
 
 make_material("body", COLOR_BODY)
-make_material("window", COLOR_WINDOW, alpha=0.4, roughness=0.1)
-make_material("floor", COLOR_FLOOR, roughness=0.9)
-make_material("wood", COLOR_WOOD)
-make_material("compartment", COLOR_COMPARTMENT, alpha=0.35)
-make_material("compartment_selected", COLOR_COMPARTMENT_SELECTED, alpha=0.65)
-make_material("bed", COLOR_BED)
-make_material("seat", COLOR_SEAT)
+make_material("window", COLOR_WINDOW, alpha=0.55, roughness=0.15)
+make_material("tire", COLOR_TIRE, roughness=0.9)
+make_material("rim", COLOR_RIM, metallic=0.8, roughness=0.2)
+make_material("marker", COLOR_MARKER)
+make_material("marker_selected", COLOR_MARKER_SELECTED)
+make_material("marker_hover", COLOR_MARKER_HOVER)
+make_material("line", COLOR_LINE)
 
-def create_box(name, x, y, z, w, d, h, mat_name, parent=None):
-    """Create a box centered at x,y,z with dimensions w,d,h."""
+def create_box(name, x, y, z, w, d, h, mat_name):
     bpy.ops.mesh.primitive_cube_add(size=1, location=(x, y, z))
     obj = bpy.context.active_object
     obj.name = name
@@ -68,122 +66,130 @@ def create_box(name, x, y, z, w, d, h, mat_name, parent=None):
     obj.data.materials.append(materials[mat_name])
     root_col.objects.link(obj)
     bpy.context.scene.collection.objects.unlink(obj)
-    if parent:
-        obj.parent = parent
     return obj
 
-# Exterior shell (simplified as a solid block with window cutouts? No, just a block for silhouette)
-shell = create_box("shell", 0, 0, HEIGHT/2 - 0.1, LENGTH, WIDTH, HEIGHT - 0.2, "body")
+def create_plane(name, x, y, z, w, d, mat_name, rotation=(0, 0, 0)):
+    bpy.ops.mesh.primitive_plane_add(size=1, location=(x, y, z), rotation=rotation)
+    obj = bpy.context.active_object
+    obj.name = name
+    obj.scale = (w, d, 1)
+    obj.data.materials.append(materials[mat_name])
+    root_col.objects.link(obj)
+    bpy.context.scene.collection.objects.unlink(obj)
+    return obj
 
-# Windows (flat planes on sides)
-# Side windows - left
-win_left = create_box("window_left", 0, WIDTH/2 + 0.01, 1.8, 5.5, 0.02, 0.8, "window")
-win_right = create_box("window_right", 0, -WIDTH/2 - 0.01, 1.8, 5.5, 0.02, 0.8, "window")
-# Front windshield
-win_front = create_box("window_front", LENGTH/2 + 0.01, 0, 1.6, 0.02, 1.8, 0.9, "window")
+# Main body lower part
+create_box("body_lower", 0, 0, HEIGHT/2, LENGTH, WIDTH, HEIGHT, "body")
 
-# Interior floor (slightly above bottom)
-floor = create_box("interior_floor", 0, 0, FLOOR_THICKNESS/2, LENGTH - 0.3, WIDTH - 0.2, FLOOR_THICKNESS, "floor")
+# Roof (slightly narrower and lower front for cab aerodynamics)
+create_box("roof", 0, 0, HEIGHT + 0.25, LENGTH - 0.4, WIDTH - 0.12, 0.5, "body")
 
-# Interior ceiling
-create_box("interior_ceiling", 0, 0, HEIGHT - 0.15, LENGTH - 0.3, WIDTH - 0.2, 0.1, "wood")
+# Cab windshield (flat plane on front)
+create_plane("windshield", LENGTH/2 + 0.005, 0, HEIGHT/2 + 0.25, 1.7, 0.9, "window", rotation=(0, math.radians(90), 0))
 
-# Walls
-# Left wall
-create_box("wall_left", 0, WIDTH/2 - 0.05, HEIGHT/2 + 0.1, LENGTH - 0.3, 0.1, HEIGHT - 0.4, "wood")
-# Right wall
-create_box("wall_right", 0, -WIDTH/2 + 0.05, HEIGHT/2 + 0.1, LENGTH - 0.3, 0.1, HEIGHT - 0.4, "wood")
-# Rear wall
-create_box("wall_rear", -LENGTH/2 + 0.05, 0, HEIGHT/2 + 0.1, 0.1, WIDTH - 0.2, HEIGHT - 0.4, "wood")
-# Partition: bathroom/bedroom divider
-create_box("partition_bath", -1.5, 0, HEIGHT/2 + 0.1, 0.1, WIDTH - 0.2, HEIGHT - 0.4, "wood")
-# Partition: front cabin / living
-create_box("partition_cab", 2.2, 0, HEIGHT/2 + 0.1, 0.1, WIDTH - 0.2, HEIGHT - 0.4, "wood")
+# Side windows (left and right) - as flat panels
+# Left side windows
+create_plane("window_side_left_front", 1.2, WIDTH/2 + 0.005, HEIGHT/2 + 0.1, 1.6, 0.7, "window", rotation=(math.radians(90), 0, math.radians(90)))
+create_plane("window_side_left_rear", -2.5, WIDTH/2 + 0.005, HEIGHT/2 + 0.1, 2.0, 0.7, "window", rotation=(math.radians(90), 0, math.radians(90)))
+# Right side windows
+create_plane("window_side_right_front", 1.2, -WIDTH/2 - 0.005, HEIGHT/2 + 0.1, 1.6, 0.7, "window", rotation=(math.radians(90), 0, math.radians(90)))
+create_plane("window_side_right_rear", -2.5, -WIDTH/2 - 0.005, HEIGHT/2 + 0.1, 2.0, 0.7, "window", rotation=(math.radians(90), 0, math.radians(90)))
 
-# Kitchen block (right side, middle)
-create_box("kitchen_block", 0.3, -WIDTH/2 + 0.55, 1.0, 2.2, 0.9, 1.5, "wood")
-# Fridge
-create_box("fridge", 0.8, -WIDTH/2 + 0.45, 1.2, 0.7, 0.7, 1.7, "body")
+# Wheels (simplified cylinders)
+def create_wheel(x, y):
+    bpy.ops.mesh.primitive_cylinder_add(radius=WHEEL_RADIUS, depth=WHEEL_WIDTH, location=(x, y, WHEEL_RADIUS))
+    obj = bpy.context.active_object
+    obj.name = f"wheel_{x}_{y}"
+    obj.rotation_euler = (0, math.radians(90), 0)
+    obj.data.materials.append(materials["tire"])
+    root_col.objects.link(obj)
+    bpy.context.scene.collection.objects.unlink(obj)
+    # rim
+    bpy.ops.mesh.primitive_cylinder_add(radius=WHEEL_RADIUS * 0.55, depth=WHEEL_WIDTH + 0.02, location=(x, y, WHEEL_RADIUS))
+    rim = bpy.context.active_object
+    rim.name = f"rim_{x}_{y}"
+    rim.rotation_euler = (0, math.radians(90), 0)
+    rim.data.materials.append(materials["rim"])
+    root_col.objects.link(rim)
+    bpy.context.scene.collection.objects.unlink(rim)
 
-# L-lounge (left side, front area)
-# Main bench along left wall
-create_box("lounge_bench", 1.5, WIDTH/2 - 0.45, 0.6, 2.0, 0.7, 0.8, "seat")
-# Side bench
-create_box("lounge_side_bench", 2.2, 0.3, 0.5, 0.7, 1.0, 0.7, "seat")
-# Table
-create_box("table", 1.4, 0.0, 0.7, 0.8, 0.6, 0.05, "wood")
+create_wheel(2.6, WIDTH/2 - 0.25)
+create_wheel(2.6, -WIDTH/2 + 0.25)
+create_wheel(-2.6, WIDTH/2 - 0.25)
+create_wheel(-2.6, -WIDTH/2 + 0.25)
 
-# Bathroom (left side, between lounge and bed)
-create_box("bathroom_block", -0.6, WIDTH/2 - 0.55, 1.0, 1.4, 0.9, 1.7, "wood")
+# Side stripe / line
+create_plane("stripe_left", 0, WIDTH/2 + 0.008, 1.0, LENGTH - 0.6, 0.04, "line", rotation=(math.radians(90), 0, math.radians(90)))
+create_plane("stripe_right", 0, -WIDTH/2 - 0.008, 1.0, LENGTH - 0.6, 0.04, "line", rotation=(math.radians(90), 0, math.radians(90)))
 
-# Bed area (rear)
-# Queens bed
-create_box("bed", -2.6, 0.0, 0.75, 1.9, 1.45, 0.45, "bed")
-# Wardrobes on sides
-create_box("wardrobe_left", -2.6, WIDTH/2 - 0.35, 1.3, 1.9, 0.4, 1.8, "wood")
-create_box("wardrobe_right", -2.6, -WIDTH/2 + 0.35, 1.3, 1.9, 0.4, 1.8, "wood")
-
-# Overhead cabinets
-create_box("overhead_left", 1.5, WIDTH/2 - 0.35, 1.9, 2.0, 0.35, 0.5, "wood")
-create_box("overhead_bed", -2.6, 0.0, 1.9, 1.9, 1.2, 0.45, "wood")
-
-# Compartments (interactive parts) - these are the clickable storage volumes
+# Compartment markers - flat planes on the outside, NO collisions
+# Format: (name, x, y, z, w, d, rotation)
 compartments = [
-    # (name, x, y, z, w, d, h)
-    ("comp_garage_left", -3.2, 0.5, 0.7, 1.8, 0.9, 1.1),
-    ("comp_garage_right", -3.2, -0.5, 0.7, 1.8, 0.9, 1.1),
-    ("comp_doublefloor_front", 1.8, 0.0, 0.25, 1.6, 1.6, 0.35),
-    ("comp_doublefloor_middle", -0.2, 0.0, 0.25, 2.2, 1.6, 0.35),
-    ("comp_doublefloor_rear", -2.4, 0.0, 0.25, 1.8, 1.6, 0.35),
-    ("comp_lounge_left", 1.5, 0.55, 0.6, 1.8, 0.5, 0.6),
-    ("comp_lounge_side", 2.2, 0.3, 0.45, 0.5, 0.8, 0.5),
-    ("comp_kitchen_upper", 0.3, -0.5, 1.7, 1.8, 0.3, 0.45),
-    ("comp_kitchen_lower", 0.3, -0.55, 0.65, 1.8, 0.55, 0.75),
-    ("comp_kitchen_fridge", 0.8, -0.45, 1.0, 0.6, 0.55, 1.5),
-    ("comp_bathroom_sink", -0.6, 0.5, 0.9, 0.7, 0.4, 0.6),
-    ("comp_bathroom_storage", -0.6, 0.5, 1.7, 0.7, 0.4, 0.5),
-    ("comp_bed_wardrobe_left", -2.6, 0.55, 1.3, 1.7, 0.3, 1.7),
-    ("comp_bed_wardrobe_right", -2.6, -0.55, 1.3, 1.7, 0.3, 1.7),
-    ("comp_bed_drawer", -2.6, 0.0, 0.35, 1.7, 1.2, 0.35),
-    ("comp_overhead_bed", -2.6, 0.0, 2.2, 1.7, 1.0, 0.35),
+    # Rear garage doors
+    ("comp_heckgarage_links", -LENGTH/2 - 0.02, 0.35, 1.0, 0.9, 1.0, (0, math.radians(90), 0)),
+    ("comp_heckgarage_rechts", -LENGTH/2 - 0.02, -0.35, 1.0, 0.9, 1.0, (0, math.radians(90), 0)),
+    
+    # Side compartment flaps (left side)
+    ("comp_seitenklappe_links_vorne", 2.0, WIDTH/2 + 0.02, 0.5, 0.8, 0.55, (math.radians(90), 0, math.radians(90))),
+    ("comp_seitenklappe_links_mitte", 0.0, WIDTH/2 + 0.02, 0.5, 1.1, 0.55, (math.radians(90), 0, math.radians(90))),
+    ("comp_seitenklappe_links_hinten", -2.2, WIDTH/2 + 0.02, 0.5, 0.9, 0.55, (math.radians(90), 0, math.radians(90))),
+    
+    # Side compartment flaps (right side)
+    ("comp_seitenklappe_rechts_vorne", 2.0, -WIDTH/2 - 0.02, 0.5, 0.8, 0.55, (math.radians(90), 0, math.radians(90))),
+    ("comp_seitenklappe_rechts_mitte", 0.0, -WIDTH/2 - 0.02, 0.5, 1.1, 0.55, (math.radians(90), 0, math.radians(90))),
+    ("comp_seitenklappe_rechts_hinten", -2.2, -WIDTH/2 - 0.02, 0.5, 0.9, 0.55, (math.radians(90), 0, math.radians(90))),
+    
+    # Roof / top access (optional)
+    ("comp_dachklappe", -1.5, 0, HEIGHT + 0.51, 0.8, 0.6, (0, 0, 0)),
 ]
 
-for name, x, y, z, w, d, h in compartments:
-    obj = create_box(name, x, y, z, w, d, h, "compartment")
-    # Add custom property for identification
+for name, x, y, z, w, d, rot in compartments:
+    obj = create_plane(name, x, y, z, w, d, "marker", rotation=rot)
     obj["is_compartment"] = True
+    # Add thin border frame using wireframe modifier? skip for simplicity
 
-# Lights
-# Key sun light
-bpy.ops.object.light_add(type='SUN', location=(5, 5, 8))
+# Lights - bright and clean
+bpy.ops.object.light_add(type='SUN', location=(8, 8, 12))
 sun = bpy.context.active_object
-sun.data.energy = 4.0
-sun.rotation_euler = (math.radians(50), 0, math.radians(45))
+sun.data.energy = 5.0
+sun.rotation_euler = (math.radians(55), 0, math.radians(45))
 
-# Fill light
-bpy.ops.object.light_add(type='AREA', location=(0, -3, 3))
+bpy.ops.object.light_add(type='AREA', location=(0, -6, 6))
 fill = bpy.context.active_object
-fill.data.energy = 2.0
+fill.data.energy = 3.0
 fill.rotation_euler = (math.radians(45), 0, 0)
 
-# Interior ambient point
-bpy.ops.object.light_add(type='POINT', location=(0, 0, 2.0))
-point = bpy.context.active_object
-point.data.energy = 500
-point.data.color = (1.0, 0.95, 0.9)
+# Ambient fill point light
+bpy.ops.object.light_add(type='POINT', location=(0, 0, 8))
+ambient = bpy.context.active_object
+ambient.data.energy = 800
+ambient.data.color = (1.0, 0.98, 0.95)
 
-# Camera
-bpy.ops.object.camera_add(location=(6, 4, 4.5))
+# Camera - angled from above
+cam_x = 8
+cam_y = 8
+cam_z = 10
+bpy.ops.object.camera_add(location=(cam_x, cam_y, cam_z))
 cam = bpy.context.active_object
-cam.rotation_euler = (math.radians(55), 0, math.radians(145))
+cam.rotation_euler = (
+    math.radians(50),
+    0,
+    math.radians(135),
+)
 scene.camera = cam
 
-# Export glb
-output_path = os.path.join(os.path.dirname(bpy.data.filepath), "..", "web", "public", "models", "c2-tourer.glb")
-# If run from command line, filepath may be empty; use absolute path
-if not bpy.data.filepath:
-    output_path = "/Users/danielfaludi/carthago-c2-tourer-inventory/web/public/models/c2-tourer.glb"
+# Ground plane (shadow catcher)
+bpy.ops.mesh.primitive_plane_add(size=1, location=(0, 0, 0))
+ground = bpy.context.active_object
+ground.name = "ground"
+ground.scale = (20, 20, 1)
+make_material("ground", (0.92, 0.92, 0.92, 1.0), roughness=1.0)
+ground.data.materials.append(materials["ground"])
+root_col.objects.link(ground)
+bpy.context.scene.collection.objects.unlink(ground)
 
+# Export glb
+output_path = "/Users/danielfaludi/carthago-c2-tourer-inventory/web/public/models/c2-tourer.glb"
 bpy.ops.export_scene.gltf(
     filepath=output_path,
     export_format='GLB',

@@ -1,32 +1,87 @@
-import { Canvas, type ThreeEvent } from '@react-three/fiber'
-import { OrbitControls, useGLTF, PerspectiveCamera } from '@react-three/drei'
-import { useRef, useEffect, useMemo } from 'react'
+import { Canvas, useFrame, type ThreeEvent } from '@react-three/fiber'
+import { useGLTF, PerspectiveCamera } from '@react-three/drei'
+import { useRef, useEffect, useMemo, useState } from 'react'
 import * as THREE from 'three'
 import { useInventoryStore } from '../stores/inventoryStore'
 
+const DEFAULT_CAMERA_POSITION: [number, number, number] = [8, 8, 10]
+const DEFAULT_CAMERA_TARGET: [number, number, number] = [0, 0, 0]
+
+function CameraAnimator() {
+  const selectedItemId = useInventoryStore((state) => state.selectedItemId)
+  const compartments = useInventoryStore((state) => state.compartments)
+  const items = useInventoryStore((state) => state.items)
+
+  const currentTargetRef = useRef(new THREE.Vector3(...DEFAULT_CAMERA_TARGET))
+
+  const [targetPos, setTargetPos] = useState<[number, number, number]>(DEFAULT_CAMERA_POSITION)
+  const [lookAt, setLookAt] = useState<[number, number, number]>(DEFAULT_CAMERA_TARGET)
+
+  useEffect(() => {
+    if (!selectedItemId) {
+      setTargetPos(DEFAULT_CAMERA_POSITION)
+      setLookAt(DEFAULT_CAMERA_TARGET)
+      return
+    }
+
+    const item = items.find((i) => i.id === selectedItemId)
+    if (!item) return
+
+    const compartment = compartments.find((c) => c.id === item.compartmentId)
+    if (!compartment) return
+
+    setTargetPos(compartment.cameraPosition)
+    setLookAt(compartment.cameraTarget)
+  }, [selectedItemId, items, compartments])
+
+  useFrame((state, delta) => {
+    const camera = state.camera
+    const targetPosition = new THREE.Vector3(...targetPos)
+    const targetLookAt = new THREE.Vector3(...lookAt)
+
+    // Smoothly interpolate camera position
+    camera.position.lerp(targetPosition, 1 - Math.exp(-3 * delta))
+
+    // Smoothly interpolate lookAt target
+    currentTargetRef.current.lerp(targetLookAt, 1 - Math.exp(-3 * delta))
+    camera.lookAt(currentTargetRef.current)
+  })
+
+  return (
+    <PerspectiveCamera
+      makeDefault
+      position={DEFAULT_CAMERA_POSITION}
+      fov={45}
+      near={0.1}
+      far={100}
+    />
+  )
+}
+
 function Model() {
   const { scene } = useGLTF('/carthago-c2-tourer-inventory/models/c2-tourer.glb')
-  const modelRef = useRef<THREE.Group>(null)
-  const selectedCompartmentId = useInventoryStore(
-    (state) => state.selectedCompartmentId,
-  )
+  const selectedItemId = useInventoryStore((state) => state.selectedItemId)
   const compartments = useInventoryStore((state) => state.compartments)
-  const selectCompartment = useInventoryStore(
-    (state) => state.selectCompartment,
-  )
+  const items = useInventoryStore((state) => state.items)
+  const selectItem = useInventoryStore((state) => state.selectItem)
 
   const compartmentMap = useMemo(() => {
     const map = new Map<string, string>()
-    compartments
-      .filter((c) => c.meshName)
-      .forEach((c) => map.set(c.meshName, c.id))
+    compartments.filter((c) => c.meshName).forEach((c) => map.set(c.meshName, c.id))
     return map
   }, [compartments])
 
-  // Clone scene so we can modify materials without affecting cached original
   const clonedScene = useMemo(() => scene.clone(true), [scene])
 
   useEffect(() => {
+    let selectedCompartmentId: string | null = null
+    if (selectedItemId) {
+      const item = items.find((i) => i.id === selectedItemId)
+      if (item) {
+        selectedCompartmentId = item.compartmentId
+      }
+    }
+
     clonedScene.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         const compId = compartmentMap.get(child.name)
@@ -34,16 +89,14 @@ function Model() {
           const isSelected = compId === selectedCompartmentId
           const mat = (child.material as THREE.MeshStandardMaterial).clone()
           mat.transparent = true
-          mat.opacity = isSelected ? 0.75 : 0.35
-          mat.emissive = isSelected
-            ? new THREE.Color('#e07a5f')
-            : new THREE.Color(0x000000)
-          mat.emissiveIntensity = isSelected ? 0.4 : 0
+          mat.opacity = isSelected ? 0.95 : 0.7
+          mat.emissive = isSelected ? new THREE.Color('#e07a5f') : new THREE.Color(0x000000)
+          mat.emissiveIntensity = isSelected ? 0.5 : 0
           child.material = mat
         }
       }
     })
-  }, [clonedScene, selectedCompartmentId, compartmentMap])
+  }, [clonedScene, selectedItemId, items, compartmentMap])
 
   const handleClick = (event: ThreeEvent<MouseEvent>) => {
     event.stopPropagation()
@@ -52,20 +105,18 @@ function Model() {
     while (current) {
       const compId = compartmentMap.get(current.name)
       if (compId) {
-        selectCompartment(compId)
+        const item = items.find((i) => i.compartmentId === compId)
+        if (item) {
+          selectItem(item.id)
+        }
         return
       }
       current = current.parent
     }
-    selectCompartment(null)
   }
 
   return (
-    <group
-      ref={modelRef}
-      onClick={handleClick}
-      onPointerMissed={() => selectCompartment(null)}
-    >
+    <group onClick={handleClick} onPointerMissed={() => selectItem(null)}>
       <primitive object={clonedScene} />
     </group>
   )
@@ -74,32 +125,24 @@ function Model() {
 function Lights() {
   return (
     <>
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[10, 10, 8]} intensity={1.2} castShadow />
-      <directionalLight position={[-8, 5, -5]} intensity={0.5} />
-      <pointLight position={[0, 3, 0]} intensity={0.8} color="#fff5e6" />
+      <ambientLight intensity={0.7} />
+      <directionalLight position={[10, 12, 8]} intensity={1.3} />
+      <directionalLight position={[-8, 6, -5]} intensity={0.6} />
+      <pointLight position={[0, 4, 2]} intensity={0.8} color="#fff5e6" />
     </>
   )
 }
 
 export function CompartmentViewer() {
   return (
-    <div className="relative h-full w-full bg-gradient-to-br from-sky-50 to-sand dark:from-gray-900 dark:to-gray-800">
+    <div className="relative h-full w-full bg-gradient-to-br from-[#e8f4fc] to-[#f5efe6]">
       <Canvas shadows>
-        <PerspectiveCamera makeDefault position={[8, 5, 6]} fov={45} />
+        <CameraAnimator />
         <Lights />
         <Model />
-        <OrbitControls
-          target={[0, 1, 0]}
-          enablePan={true}
-          enableZoom={true}
-          minDistance={3}
-          maxDistance={20}
-        />
-        <gridHelper args={[20, 20, 0xcccccc, 0xe5e5e5]} position={[0, -0.01, 0]} />
       </Canvas>
-      <div className="pointer-events-none absolute bottom-3 right-3 rounded-lg bg-white/80 px-3 py-2 text-xs text-gray-600 shadow backdrop-blur dark:bg-gray-900/80 dark:text-gray-300">
-        🖱️ Drehen · Scrollen · Klick auf Fach
+      <div className="pointer-events-none absolute bottom-4 left-4 rounded-lg bg-white/90 px-3 py-2 text-xs text-stone-600 shadow backdrop-blur">
+        🖱️ Klick auf Listeneintrag → Kamera fliegt zum Fach
       </div>
     </div>
   )

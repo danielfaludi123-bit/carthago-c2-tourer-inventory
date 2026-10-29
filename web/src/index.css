@@ -4,12 +4,12 @@
   --color-terracotta: #e07a5f;
   --color-terracotta-light: #f2c6b6;
   --color-terracotta-dark: #c05638;
-  --color-sand: #f4f1ea;
-  --color-sand-dark: #e8e4da;
+  --color-paper: #fffdf5;
+  --color-paper-line: #f0e6d3;
 }
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
 html,
@@ -21,23 +21,29 @@ body,
 
 body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: #f9fafb;
-  color: #111827;
-}
-
-.dark body {
-  background-color: #111827;
-  color: #f9fafb;
+  background-color: #f5f1e8;
+  color: #2d2a26;
 }
 
 * {
   box-sizing: border-box;
 }
 
+/* Notiz-Papier Stil */
+.note-paper {
+  background-color: #fffdf5;
+  background-image: linear-gradient(#f0e6d3 1px, transparent 1px);
+  background-size: 100% 1.75rem;
+  box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.08),
+    0 2px 4px rgba(0, 0, 0, 0.08),
+    0 4px 8px rgba(0, 0, 0, 0.06),
+    0 8px 16px rgba(0, 0, 0, 0.04);
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -45,14 +51,10 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 4px;
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: #4b5563;
+  background: #d4c8b0;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: #b8aa8e;
 }

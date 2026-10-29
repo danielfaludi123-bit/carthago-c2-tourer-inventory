@@ -1,9 +1,12 @@
 export interface Compartment {
   id: string
   name: string
-  parentId?: string
   meshName: string
   icon: string
+  // Camera position for this compartment (world coordinates)
+  cameraPosition: [number, number, number]
+  // Where the camera should look at
+  cameraTarget: [number, number, number]
 }
 
 export interface InventoryItem {
@@ -19,6 +22,6 @@ export interface InventoryItem {
 export interface AppState {
   compartments: Compartment[]
   items: InventoryItem[]
-  selectedCompartmentId: string | null
-  darkMode: boolean
+  selectedItemId: string | null
+  searchQuery: string
 }
