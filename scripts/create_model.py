@@ -1,5 +1,4 @@
 import bpy
-import os
 import math
 
 # Clear scene
@@ -16,21 +15,17 @@ scene.unit_settings.system = 'METRIC'
 scene.unit_settings.scale_length = 1.0
 scene.unit_settings.length_unit = 'METERS'
 
-# Vehicle dimensions
+# Dimensions
 LENGTH = 7.36
 WIDTH = 2.17
-BODY_HEIGHT = 0.15
+BODY_THICKNESS = 0.12
 
 # Colors
 COLOR_BODY = (0.96, 0.96, 0.96, 1.0)
-COLOR_STRIPE = (0.35, 0.35, 0.38, 1.0)
-COLOR_WINDOW = (0.5, 0.65, 0.78, 0.5)
-COLOR_TIRE = (0.12, 0.12, 0.12, 1.0)
-COLOR_RIM = (0.75, 0.75, 0.78, 1.0)
-COLOR_MARKER = (0.90, 0.47, 0.35, 0.9)
-COLOR_MARKER_HOVER = (0.98, 0.65, 0.55, 0.95)
-COLOR_MARKER_SELECTED = (0.98, 0.30, 0.15, 0.95)
-COLOR_GROUND = (0.93, 0.90, 0.84, 1.0)
+COLOR_STRIPE = (0.42, 0.42, 0.45, 1.0)
+COLOR_MARKER = (0.90, 0.48, 0.35, 1.0)
+COLOR_MARKER_DARK = (0.65, 0.35, 0.28, 1.0)
+COLOR_GROUND = (0.94, 0.91, 0.84, 1.0)
 
 materials = {}
 
@@ -47,14 +42,10 @@ def make_material(name, color, alpha=1.0, metallic=0.0, roughness=0.7):
     materials[name] = mat
     return mat
 
-make_material("body", COLOR_BODY, roughness=0.4)
+make_material("body", COLOR_BODY, roughness=0.5)
 make_material("stripe", COLOR_STRIPE, roughness=0.5)
-make_material("window", COLOR_WINDOW, alpha=0.5, roughness=0.15)
-make_material("tire", COLOR_TIRE, roughness=0.95)
-make_material("rim", COLOR_RIM, metallic=0.7, roughness=0.25)
 make_material("marker", COLOR_MARKER)
-make_material("marker_hover", COLOR_MARKER_HOVER)
-make_material("marker_selected", COLOR_MARKER_SELECTED)
+make_material("marker_dark", COLOR_MARKER_DARK)
 make_material("ground", COLOR_GROUND, roughness=1.0)
 
 def create_box(name, x, y, z, w, d, h, mat_name):
@@ -77,105 +68,76 @@ def create_plane(name, x, y, z, w, d, mat_name, rotation=(0, 0, 0)):
     bpy.context.scene.collection.objects.unlink(obj)
     return obj
 
-# Ground
-create_plane("ground", 0, 0, -0.01, 18, 10, "ground")
+# Ground plane
+create_plane("ground", 0, 0, -0.005, 22, 12, "ground")
 
-# Main body - very flat slab
-create_box("body_main", 0, 0, BODY_HEIGHT/2, LENGTH, WIDTH, BODY_HEIGHT, "body")
+# Main body - flat slab
+create_box("body_main", 0, 0, BODY_THICKNESS/2, LENGTH, WIDTH, BODY_THICKNESS, "body")
 
-# Dark stripe along sides
-create_box("stripe_left", 0, WIDTH/2 + 0.002, BODY_HEIGHT + 0.005, LENGTH - 0.4, 0.015, 0.08, "stripe")
-create_box("stripe_right", 0, -WIDTH/2 - 0.002, BODY_HEIGHT + 0.005, LENGTH - 0.4, 0.015, 0.08, "stripe")
+# Cab front slightly narrower
+create_box("cab_front", LENGTH/2 + 0.10, 0, BODY_THICKNESS/2 * 0.9, 0.20, WIDTH - 0.28, BODY_THICKNESS * 0.85, "body")
 
-# Windows - flat, slightly above body, no overlap
-# Front windshield
-create_box("window_front", LENGTH/2 + 0.002, 0, BODY_HEIGHT + 0.05, 0.01, 1.6, 0.5, "window")
-# Side windows
-create_box("window_left_front", 1.3, WIDTH/2 + 0.002, BODY_HEIGHT + 0.05, 1.4, 0.01, 0.5, "window")
-create_box("window_left_rear", -2.4, WIDTH/2 + 0.002, BODY_HEIGHT + 0.05, 2.0, 0.01, 0.5, "window")
-create_box("window_right_front", 1.3, -WIDTH/2 - 0.002, BODY_HEIGHT + 0.05, 1.4, 0.01, 0.5, "window")
-create_box("window_right_rear", -2.4, -WIDTH/2 - 0.002, BODY_HEIGHT + 0.05, 2.0, 0.01, 0.5, "window")
+# Thin outline on top surface
+outline_z = BODY_THICKNESS + 0.002
+line_w = 0.025
+create_box("outline_front", LENGTH/2 - 0.015, 0, outline_z, line_w, WIDTH - 0.08, 0.005, "stripe")
+create_box("outline_rear", -LENGTH/2 + 0.015, 0, outline_z, line_w, WIDTH - 0.08, 0.005, "stripe")
+create_box("outline_left", 0, WIDTH/2 - 0.015, outline_z, LENGTH - 0.08, line_w, 0.005, "stripe")
+create_box("outline_right", 0, -WIDTH/2 + 0.015, outline_z, LENGTH - 0.08, line_w, 0.005, "stripe")
 
-# Wheels - simple cylinders, clearly outside body
-def create_wheel(x, y):
-    bpy.ops.mesh.primitive_cylinder_add(radius=0.34, depth=0.2, location=(x, y, 0.34))
-    wheel = bpy.context.active_object
-    wheel.name = f"wheel_{x}_{y}"
-    wheel.rotation_euler = (0, math.radians(90), 0)
-    wheel.data.materials.append(materials["tire"])
-    root_col.objects.link(wheel)
-    bpy.context.scene.collection.objects.unlink(wheel)
-    # rim
-    bpy.ops.mesh.primitive_cylinder_add(radius=0.18, depth=0.22, location=(x, y, 0.34))
-    rim = bpy.context.active_object
-    rim.name = f"rim_{x}_{y}"
-    rim.rotation_euler = (0, math.radians(90), 0)
-    rim.data.materials.append(materials["rim"])
-    root_col.objects.link(rim)
-    bpy.context.scene.collection.objects.unlink(rim)
-
-create_wheel(2.5, WIDTH/2 + 0.22)
-create_wheel(2.5, -WIDTH/2 - 0.22)
-create_wheel(-2.5, WIDTH/2 + 0.22)
-create_wheel(-2.5, -WIDTH/2 - 0.22)
-
-# Compartment markers - flat rectangles ON TOP of body, spaced out, no overlap
-# Each marker is a thin slab sitting on top of body surface
+# Compartment markers - flat, no overlaps
+marker_z = BODY_THICKNESS + 0.004
+# Compartments defined as: name, x, y, width, depth, material
 compartments = [
-    # Rear garage doors (back of vehicle)
-    ("comp_heckgarage_links", -LENGTH/2 + 0.01, 0.42, BODY_HEIGHT + 0.012, 0.75, 0.75),
-    ("comp_heckgarage_rechts", -LENGTH/2 + 0.01, -0.42, BODY_HEIGHT + 0.012, 0.75, 0.75),
+    # Rear garage doors (back)
+    ("comp_heckgarage_links", -LENGTH/2 + 0.45, 0.42, 0.80, 0.70, "marker"),
+    ("comp_heckgarage_rechts", -LENGTH/2 + 0.45, -0.42, 0.80, 0.70, "marker"),
     
-    # Side flaps - left
-    ("comp_seitenklappe_links_vorne", 2.1, WIDTH/2 - 0.25, BODY_HEIGHT + 0.012, 0.7, 0.45),
-    ("comp_seitenklappe_links_mitte", -0.1, WIDTH/2 - 0.25, BODY_HEIGHT + 0.012, 1.0, 0.45),
-    ("comp_seitenklappe_links_hinten", -2.4, WIDTH/2 - 0.25, BODY_HEIGHT + 0.012, 0.75, 0.45),
+    # Left side flaps (3)
+    ("comp_seitenklappe_links_vorne", 2.3, WIDTH/2 - 0.30, 0.70, 0.40, "marker"),
+    ("comp_seitenklappe_links_mitte", -0.2, WIDTH/2 - 0.30, 0.95, 0.40, "marker"),
+    ("comp_seitenklappe_links_hinten", -2.6, WIDTH/2 - 0.30, 0.75, 0.40, "marker"),
     
-    # Side flaps - right
-    ("comp_seitenklappe_rechts_vorne", 2.1, -WIDTH/2 + 0.25, BODY_HEIGHT + 0.012, 0.7, 0.45),
-    ("comp_seitenklappe_rechts_mitte", -0.1, -WIDTH/2 + 0.25, BODY_HEIGHT + 0.012, 1.0, 0.45),
-    ("comp_seitenklappe_rechts_hinten", -2.4, -WIDTH/2 + 0.25, BODY_HEIGHT + 0.012, 0.75, 0.45),
+    # Right side flaps (3)
+    ("comp_seitenklappe_rechts_vorne", 2.3, -WIDTH/2 + 0.30, 0.70, 0.40, "marker"),
+    ("comp_seitenklappe_rechts_mitte", -0.2, -WIDTH/2 + 0.30, 0.95, 0.40, "marker"),
+    ("comp_seitenklappe_rechts_hinten", -2.6, -WIDTH/2 + 0.30, 0.75, 0.40, "marker"),
+    
+    # Double floor flaps - smaller, centered along sides
+    ("comp_doppelboden_links_vorne", 1.4, WIDTH/2 - 0.30, 0.55, 0.35, "marker_dark"),
+    ("comp_doppelboden_rechts_vorne", 1.4, -WIDTH/2 + 0.30, 0.55, 0.35, "marker_dark"),
+    ("comp_doppelboden_links_hinten", -3.4, WIDTH/2 - 0.30, 0.55, 0.35, "marker_dark"),
+    ("comp_doppelboden_rechts_hinten", -3.4, -WIDTH/2 + 0.30, 0.55, 0.35, "marker_dark"),
     
     # Roof hatch
-    ("comp_dachklappe", -1.2, 0.0, BODY_HEIGHT + 0.012, 0.7, 0.5),
+    ("comp_dachklappe", -1.2, 0.0, 0.60, 0.42, "marker"),
 ]
 
-for name, x, y, z, w, d in compartments:
-    obj = create_box(name, x, y, z, w, d, 0.006, "marker")
+for name, x, y, w, d, mat in compartments:
+    obj = create_box(name, x, y, marker_z, w, d, 0.004, mat)
     obj["is_compartment"] = True
 
-# Outline edges (thin boxes on top surface)
-create_box("outline_front", LENGTH/2 - 0.02, 0, BODY_HEIGHT + 0.006, 0.02, WIDTH - 0.08, 0.006, "stripe")
-create_box("outline_rear", -LENGTH/2 + 0.02, 0, BODY_HEIGHT + 0.006, 0.02, WIDTH - 0.08, 0.006, "stripe")
-create_box("outline_left", 0, WIDTH/2 - 0.02, BODY_HEIGHT + 0.006, LENGTH - 0.08, 0.02, 0.006, "stripe")
-create_box("outline_right", 0, -WIDTH/2 + 0.02, BODY_HEIGHT + 0.006, LENGTH - 0.08, 0.02, 0.006, "stripe")
-
 # Lights
-bpy.ops.object.light_add(type='SUN', location=(5, 5, 10))
+bpy.ops.object.light_add(type='SUN', location=(5, 4, 10))
 sun = bpy.context.active_object
 sun.data.energy = 3.0
-sun.rotation_euler = (math.radians(50), 0, math.radians(45))
+sun.rotation_euler = (math.radians(45), 0, math.radians(45))
 
-bpy.ops.object.light_add(type='AREA', location=(0, -5, 6))
-fill = bpy.context.active_object
-fill.data.energy = 2.0
-fill.rotation_euler = (math.radians(45), 0, 0)
-
-bpy.ops.object.light_add(type='POINT', location=(0, 0, 6))
+bpy.ops.object.light_add(type='POINT', location=(0, 0, 8))
 ambient = bpy.context.active_object
-ambient.data.energy = 600
+ambient.data.energy = 700
 ambient.data.color = (1.0, 0.98, 0.95)
 
-# Camera - top down angled
-cam_x = 1.5
-cam_y = 9
-cam_z = 12
+# Camera - top down
+cam_x = 1.2
+cam_y = 8.5
+cam_z = 11.5
 bpy.ops.object.camera_add(location=(cam_x, cam_y, cam_z))
 cam = bpy.context.active_object
 cam.rotation_euler = (
-    math.radians(35),
+    math.radians(30),
     0,
-    math.radians(170),
+    math.radians(172),
 )
 scene.camera = cam
 
