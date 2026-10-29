@@ -139,14 +139,14 @@ function Lights() {
         position={[10, 12, 8]}
         intensity={1.6}
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-camera-near={0.5}
-        shadow-camera-far={50}
-        shadow-camera-left={-10}
-        shadow-camera-right={10}
-        shadow-camera-top={10}
-        shadow-camera-bottom={-10}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+        shadow-camera-near={1}
+        shadow-camera-far={30}
+        shadow-camera-left={-8}
+        shadow-camera-right={8}
+        shadow-camera-top={8}
+        shadow-camera-bottom={-8}
       />
       <directionalLight position={[-8, 6, -5]} intensity={0.5} />
       <pointLight position={[0, 4, 2]} intensity={0.6} color="#fff5e6" />
