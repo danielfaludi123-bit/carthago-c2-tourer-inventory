@@ -36,6 +36,7 @@ function CameraAnimator() {
 
   useFrame((state, delta) => {
     const camera = state.camera
+    const invalidate = state.invalidate
     const targetPosition = new THREE.Vector3(...targetPos)
     const targetLookAt = new THREE.Vector3(...lookAt)
 
@@ -45,6 +46,8 @@ function CameraAnimator() {
     // Smoothly interpolate lookAt target
     currentTargetRef.current.lerp(targetLookAt, 1 - Math.exp(-2.2 * delta))
     camera.lookAt(currentTargetRef.current)
+
+    invalidate()
   })
 
   return (
@@ -136,7 +139,7 @@ function Lights() {
 export function CompartmentViewer() {
   return (
     <div className="relative h-full w-full bg-gradient-to-br from-[#e8f4fc] to-[#f5efe6]">
-      <Canvas>
+      <Canvas frameloop="demand">
         <CameraAnimator />
         <Lights />
         <Model />
