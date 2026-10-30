@@ -14,7 +14,7 @@ function ItemRow({ item, highlighted }: { item: InventoryItem; highlighted?: boo
 
   return (
     <div
-      className={`group flex items-center gap-2 border-b border-paper-line/60 px-3 py-2 transition-colors hover:bg-amber-50/50 ${
+      className={`group flex items-center gap-2 px-3 py-2 transition-colors hover:bg-amber-50/50 ${
         item.checked ? 'opacity-45' : ''
       } ${highlighted ? 'bg-green-50/70' : ''}`}
     >

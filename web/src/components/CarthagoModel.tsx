@@ -99,6 +99,7 @@ function Flap({
 }) {
   const pivotRef = useRef<THREE.Group>(null)
   const meshRef = useRef<THREE.Mesh>(null)
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null)
   const { invalidate } = useThree()
   const selectCompartment = useInventoryStore((state) => state.selectCompartment)
   const selectedCompartmentId = useInventoryStore((state) => state.selectedCompartmentId)
@@ -124,9 +125,20 @@ function Flap({
     }
   })
 
-  const handleClick = (e: ThreeEvent<MouseEvent>) => {
+  const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation()
-    selectCompartment(compartmentId)
+    pointerStartRef.current = { x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY }
+  }
+
+  const handlePointerUp = (e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation()
+    if (!pointerStartRef.current) return
+    const dx = e.nativeEvent.offsetX - pointerStartRef.current.x
+    const dy = e.nativeEvent.offsetY - pointerStartRef.current.y
+    pointerStartRef.current = null
+    if (Math.sqrt(dx * dx + dy * dy) < 6) {
+      selectCompartment(compartmentId)
+    }
   }
 
   return (
@@ -136,8 +148,8 @@ function Flap({
         name={name}
         position={[0, -h / 2, side * 0.015]}
         material={isSelected ? selectedMat : baseMat}
-        onClick={handleClick}
-        onPointerDown={(e) => e.stopPropagation()}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
       >
         <boxGeometry args={[w, h, 0.05]} />
         <lineSegments>

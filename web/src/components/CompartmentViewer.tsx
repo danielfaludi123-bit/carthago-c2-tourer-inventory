@@ -21,48 +21,38 @@ function CameraController() {
   const compartments = useInventoryStore((state) => state.compartments)
   const controlsRef = useRef<any>(null)
   const [targetAzimuth, setTargetAzimuth] = useState<number | null>(null)
-  const [userInteracting, setUserInteracting] = useState(false)
+  const [hasInteracted, setHasInteracted] = useState(false)
 
   useEffect(() => {
-    if (!selectedCompartmentId || userInteracting) {
+    if (!selectedCompartmentId || hasInteracted) {
       setTargetAzimuth(null)
       return
     }
     const compartment = compartments.find((c) => c.id === selectedCompartmentId)
     if (!compartment) return
     setTargetAzimuth(SIDE_ANGLES[compartment.side])
-  }, [selectedCompartmentId, compartments, userInteracting])
+  }, [selectedCompartmentId, compartments, hasInteracted])
 
   useFrame((_, delta) => {
     if (!controlsRef.current) return
     const controls = controlsRef.current
 
-    if (targetAzimuth !== null && !userInteracting) {
+    if (targetAzimuth !== null && !hasInteracted) {
       const current = controls.getAzimuthalAngle()
       let diff = targetAzimuth - current
       while (diff > Math.PI) diff -= 2 * Math.PI
       while (diff < -Math.PI) diff += 2 * Math.PI
       const step = diff * (1 - Math.exp(-2.5 * delta))
       controls.setAzimuthalAngle(current + step)
-      controls.autoRotate = false
       if (Math.abs(diff) < 0.02) {
         setTargetAzimuth(null)
       }
-    } else if (!userInteracting && targetAzimuth === null) {
-      controls.autoRotate = true
     }
   })
 
   const handleStart = () => {
-    setUserInteracting(true)
+    setHasInteracted(true)
     setTargetAzimuth(null)
-    if (controlsRef.current) {
-      controlsRef.current.autoRotate = false
-    }
-  }
-
-  const handleEnd = () => {
-    setUserInteracting(false)
   }
 
   return (
@@ -77,10 +67,9 @@ function CameraController() {
       maxPolarAngle={Math.PI / 2.1}
       minDistance={6}
       maxDistance={18}
-      autoRotate={!userInteracting && targetAzimuth === null}
+      autoRotate={!hasInteracted}
       autoRotateSpeed={0.4}
       onStart={handleStart}
-      onEnd={handleEnd}
     />
   )
 }
