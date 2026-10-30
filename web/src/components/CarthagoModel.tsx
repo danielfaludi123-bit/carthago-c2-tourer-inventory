@@ -141,6 +141,9 @@ function Flap({
     }
   }
 
+  const hw = w * 0.88
+  const hh = h * 0.88
+
   return (
     <group position={[x, yc + h / 2, side * H]} ref={pivotRef}>
       <mesh
@@ -151,13 +154,13 @@ function Flap({
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
       >
-        <boxGeometry args={[w, h, 0.05]} />
+        <boxGeometry args={[hw, hh, 0.02]} />
         <lineSegments>
-          <edgesGeometry args={[new THREE.BoxGeometry(w, h, 0.05)]} />
+          <edgesGeometry args={[new THREE.BoxGeometry(hw, hh, 0.02)]} />
           <lineBasicMaterial color={0x222222} />
         </lineSegments>
-        <mesh position={[w / 2 - 0.1, 0, side * 0.04]} material={stdMaterial(COLOR_HANDLE)}>
-          <boxGeometry args={[0.05, 0.1, 0.03]} />
+        <mesh position={[hw / 2 - 0.09, 0, side * 0.035]} material={stdMaterial(COLOR_HANDLE)}>
+          <boxGeometry args={[0.04, 0.08, 0.02]} />
         </mesh>
       </mesh>
     </group>

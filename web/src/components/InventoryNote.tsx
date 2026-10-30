@@ -128,7 +128,7 @@ export function InventoryNote() {
     <>
       <div className="note-paper absolute bottom-3 left-3 flex w-80 flex-col rounded-sm shadow-lg sm:w-96">
         {/* Notiz-Kopf */}
-        <div className="flex items-center justify-between border-b border-paper-line bg-[#fff8e1] px-3 py-2">
+        <div className="flex items-center justify-between bg-[#fff8e1] px-3 py-2">
           <div className="flex items-center gap-2">
             <div className="h-3 w-3 rounded-full bg-terracotta/80" />
             <span className="text-xs font-semibold uppercase tracking-wide text-stone-600">
@@ -143,7 +143,7 @@ export function InventoryNote() {
 
         {/* Ausgewähltes Fach */}
         {selectedCompartment && (
-          <div className="flex items-center justify-between border-b border-paper-line bg-green-50 px-3 py-1.5">
+          <div className="flex items-center justify-between bg-green-50 px-3 py-1.5">
             <span className="flex items-center gap-1.5 text-xs font-medium text-green-700">
               <MapPin size={11} />
               {selectedCompartment.name}
@@ -159,7 +159,7 @@ export function InventoryNote() {
         )}
 
         {/* Suchleiste */}
-        <div className="flex items-center gap-2 border-b border-paper-line bg-white/60 px-3 py-2">
+        <div className="flex items-center gap-2 bg-white/60 px-3 py-2">
           <Search size={14} className="text-stone-400" />
           <input
             type="text"
@@ -192,7 +192,7 @@ export function InventoryNote() {
         <button
           type="button"
           onClick={() => setShowAddDialog(true)}
-          className="flex items-center justify-center gap-1.5 border-t border-paper-line bg-[#fff8e1] px-3 py-2 text-sm font-medium text-terracotta-dark transition-colors hover:bg-[#fff3d0]"
+          className="flex items-center justify-center gap-1.5 bg-[#fff8e1] px-3 py-2 text-sm font-medium text-terracotta-dark transition-colors hover:bg-[#fff3d0]"
         >
           <PlusCircle size={16} />
           Gegenstand hinzufügen
