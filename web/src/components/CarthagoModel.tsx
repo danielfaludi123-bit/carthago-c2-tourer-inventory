@@ -178,6 +178,11 @@ export function CarthagoModel() {
   const doorMat = useMemo(() => stdMaterial(COLOR_DOOR), [])
   const taillightMat = useMemo(() => stdMaterial(COLOR_TAILLIGHT), [])
   const grayMat = useMemo(() => stdMaterial(0x888e94), [])
+  const windshieldGeo = useMemo(() => {
+    const geo = new THREE.PlaneGeometry(1.15, 2.0)
+    geo.rotateX(-Math.PI / 2)
+    return geo
+  }, [])
 
   const flaps = useMemo(
     () => [
@@ -200,9 +205,8 @@ export function CarthagoModel() {
         position={[3.125 + 0.011, 1.85 + 0.004, 0]}
         rotation={[0, 0, Math.atan2(-1.1, 0.35)]}
         material={glassMat}
-      >
-        <planeGeometry args={[1.15, 2.0]} />
-      </mesh>
+        geometry={windshieldGeo}
+      />
 
       {/* Wheels */}
       <Wheel x={2.6} side={1} />
