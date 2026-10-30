@@ -124,7 +124,7 @@ function Flap({
 
   useFrame(() => {
     if (!pivotRef.current) return
-    const goal = isOpen ? 1.2 : 0
+    const goal = isOpen ? 0.65 : 0
     pivotRef.current.rotation.x += (-side * goal - pivotRef.current.rotation.x) * 0.12
     if (Math.abs(pivotRef.current.rotation.x + side * goal) > 0.001) {
       invalidate()
