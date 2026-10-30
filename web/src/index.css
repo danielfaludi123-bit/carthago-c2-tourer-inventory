@@ -32,8 +32,6 @@ body {
 /* Notiz-Papier Stil */
 .note-paper {
   background-color: #fffdf5;
-  background-image: linear-gradient(#f0e6d3 1px, transparent 1px);
-  background-size: 100% 1.75rem;
   box-shadow:
     0 1px 1px rgba(0, 0, 0, 0.08),
     0 2px 4px rgba(0, 0, 0, 0.08),

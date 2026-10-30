@@ -1,6 +1,7 @@
-import { Canvas, useFrame } from '@react-three/fiber'
+import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { PerspectiveCamera, OrbitControls } from '@react-three/drei'
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect, useState, useMemo } from 'react'
+import * as THREE from 'three'
 import { useInventoryStore } from '../stores/inventoryStore'
 import { CarthagoModel } from './CarthagoModel'
 import type { CompartmentSide } from '../types'
@@ -97,14 +98,37 @@ function Lights() {
 }
 
 function Scene() {
+  const { camera, scene } = useThree()
+  const raycaster = useMemo(() => new THREE.Raycaster(), [])
+  const selectCompartment = useInventoryStore((state) => state.selectCompartment)
   const clearSelection = useInventoryStore((state) => state.clearSelection)
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null)
 
-  const handleBackgroundClick = () => {
+  const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
+    pointerStartRef.current = { x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY }
+  }
+
+  const handlePointerUp = (e: ThreeEvent<PointerEvent>) => {
+    if (!pointerStartRef.current) return
+    const dx = e.nativeEvent.offsetX - pointerStartRef.current.x
+    const dy = e.nativeEvent.offsetY - pointerStartRef.current.y
+    pointerStartRef.current = null
+    if (Math.sqrt(dx * dx + dy * dy) > 6) return
+
+    raycaster.setFromCamera(e.pointer, camera)
+    const hits = raycaster.intersectObjects(scene.children, true)
+    for (const hit of hits) {
+      const compId = hit.object.userData.compartmentId
+      if (compId) {
+        selectCompartment(compId)
+        return
+      }
+    }
     clearSelection()
   }
 
   return (
-    <group onPointerMissed={handleBackgroundClick}>
+    <group onPointerDown={handlePointerDown} onPointerUp={handlePointerUp}>
       <CarthagoModel />
     </group>
   )

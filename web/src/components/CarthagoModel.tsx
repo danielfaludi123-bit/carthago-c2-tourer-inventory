@@ -1,6 +1,6 @@
 import { useRef, useMemo } from 'react'
 import * as THREE from 'three'
-import { useThree, useFrame, type ThreeEvent } from '@react-three/fiber'
+import { useThree, useFrame } from '@react-three/fiber'
 import { useInventoryStore } from '../stores/inventoryStore'
 
 // Carthago c-tourer I 148 RB QB L comfort
@@ -98,10 +98,7 @@ function Flap({
   color: number
 }) {
   const pivotRef = useRef<THREE.Group>(null)
-  const meshRef = useRef<THREE.Mesh>(null)
-  const pointerStartRef = useRef<{ x: number; y: number } | null>(null)
   const { invalidate } = useThree()
-  const selectCompartment = useInventoryStore((state) => state.selectCompartment)
   const selectedCompartmentId = useInventoryStore((state) => state.selectedCompartmentId)
   const openFlaps = useInventoryStore((state) => state.openFlaps)
 
@@ -125,42 +122,21 @@ function Flap({
     }
   })
 
-  const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
-    e.stopPropagation()
-    pointerStartRef.current = { x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY }
-  }
-
-  const handlePointerUp = (e: ThreeEvent<PointerEvent>) => {
-    e.stopPropagation()
-    if (!pointerStartRef.current) return
-    const dx = e.nativeEvent.offsetX - pointerStartRef.current.x
-    const dy = e.nativeEvent.offsetY - pointerStartRef.current.y
-    pointerStartRef.current = null
-    if (Math.sqrt(dx * dx + dy * dy) < 6) {
-      selectCompartment(compartmentId)
-    }
-  }
-
-  const hw = w * 0.88
-  const hh = h * 0.88
-
   return (
     <group position={[x, yc + h / 2, side * H]} ref={pivotRef}>
       <mesh
-        ref={meshRef}
         name={name}
-        position={[0, -h / 2, side * 0.015]}
+        position={[0, -h / 2, side * 0.01]}
         material={isSelected ? selectedMat : baseMat}
-        onPointerDown={handlePointerDown}
-        onPointerUp={handlePointerUp}
+        userData={{ compartmentId }}
       >
-        <boxGeometry args={[hw, hh, 0.02]} />
+        <boxGeometry args={[w, h, 0.005]} />
         <lineSegments>
-          <edgesGeometry args={[new THREE.BoxGeometry(hw, hh, 0.02)]} />
+          <edgesGeometry args={[new THREE.BoxGeometry(w, h, 0.005)]} />
           <lineBasicMaterial color={0x222222} />
         </lineSegments>
-        <mesh position={[hw / 2 - 0.09, 0, side * 0.035]} material={stdMaterial(COLOR_HANDLE)}>
-          <boxGeometry args={[0.04, 0.08, 0.02]} />
+        <mesh position={[w / 2 - 0.1, 0, side * 0.02]} material={stdMaterial(COLOR_HANDLE)}>
+          <boxGeometry args={[0.05, 0.1, 0.01]} />
         </mesh>
       </mesh>
     </group>
