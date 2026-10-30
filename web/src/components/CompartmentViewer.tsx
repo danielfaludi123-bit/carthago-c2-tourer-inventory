@@ -17,35 +17,53 @@ const SIDE_ANGLES: Record<CompartmentSide, number> = {
 }
 
 function CameraController() {
-  const selectedItemId = useInventoryStore((state) => state.selectedItemId)
-  const items = useInventoryStore((state) => state.items)
+  const selectedCompartmentId = useInventoryStore((state) => state.selectedCompartmentId)
   const compartments = useInventoryStore((state) => state.compartments)
   const controlsRef = useRef<any>(null)
   const [targetAzimuth, setTargetAzimuth] = useState<number | null>(null)
+  const [userInteracting, setUserInteracting] = useState(false)
 
   useEffect(() => {
-    if (!selectedItemId) {
+    if (!selectedCompartmentId || userInteracting) {
       setTargetAzimuth(null)
       return
     }
-    const item = items.find((i) => i.id === selectedItemId)
-    if (!item) return
-    const compartment = compartments.find((c) => c.id === item.compartmentId)
+    const compartment = compartments.find((c) => c.id === selectedCompartmentId)
     if (!compartment) return
     setTargetAzimuth(SIDE_ANGLES[compartment.side])
-  }, [selectedItemId, items, compartments])
+  }, [selectedCompartmentId, compartments, userInteracting])
 
   useFrame((_, delta) => {
-    if (!controlsRef.current || targetAzimuth === null) return
+    if (!controlsRef.current) return
     const controls = controlsRef.current
-    const current = controls.getAzimuthalAngle()
-    let diff = targetAzimuth - current
-    while (diff > Math.PI) diff -= 2 * Math.PI
-    while (diff < -Math.PI) diff += 2 * Math.PI
-    const step = diff * (1 - Math.exp(-2.5 * delta))
-    controls.autoRotate = false
-    controls.setAzimuthalAngle(current + step)
+
+    if (targetAzimuth !== null && !userInteracting) {
+      const current = controls.getAzimuthalAngle()
+      let diff = targetAzimuth - current
+      while (diff > Math.PI) diff -= 2 * Math.PI
+      while (diff < -Math.PI) diff += 2 * Math.PI
+      const step = diff * (1 - Math.exp(-2.5 * delta))
+      controls.setAzimuthalAngle(current + step)
+      controls.autoRotate = false
+      if (Math.abs(diff) < 0.02) {
+        setTargetAzimuth(null)
+      }
+    } else if (!userInteracting && targetAzimuth === null) {
+      controls.autoRotate = true
+    }
   })
+
+  const handleStart = () => {
+    setUserInteracting(true)
+    setTargetAzimuth(null)
+    if (controlsRef.current) {
+      controlsRef.current.autoRotate = false
+    }
+  }
+
+  const handleEnd = () => {
+    setUserInteracting(false)
+  }
 
   return (
     <OrbitControls
@@ -59,8 +77,10 @@ function CameraController() {
       maxPolarAngle={Math.PI / 2.1}
       minDistance={6}
       maxDistance={18}
-      autoRotate
+      autoRotate={!userInteracting && targetAzimuth === null}
       autoRotateSpeed={0.4}
+      onStart={handleStart}
+      onEnd={handleEnd}
     />
   )
 }
@@ -88,10 +108,10 @@ function Lights() {
 }
 
 function Scene() {
-  const selectItem = useInventoryStore((state) => state.selectItem)
+  const clearSelection = useInventoryStore((state) => state.clearSelection)
 
   const handleBackgroundClick = () => {
-    selectItem(null)
+    clearSelection()
   }
 
   return (

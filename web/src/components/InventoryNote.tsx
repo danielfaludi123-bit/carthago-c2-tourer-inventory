@@ -1,11 +1,11 @@
-import { Minus, Plus, Trash2, Check, Weight, Search, PlusCircle, MapPin } from 'lucide-react'
+import { Minus, Plus, Trash2, Check, Weight, Search, PlusCircle, MapPin, X } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import { useState, useMemo } from 'react'
 import { useInventoryStore } from '../stores/inventoryStore'
 import { AddItemDialog } from './AddItemDialog'
 import type { InventoryItem } from '../types'
 
-function ItemRow({ item }: { item: InventoryItem }) {
+function ItemRow({ item, highlighted }: { item: InventoryItem; highlighted?: boolean }) {
   const { updateQuantity, toggleChecked, removeItem, updateItemWeight, selectItem, compartments } =
     useInventoryStore()
   // @ts-ignore
@@ -16,7 +16,7 @@ function ItemRow({ item }: { item: InventoryItem }) {
     <div
       className={`group flex items-center gap-2 border-b border-paper-line/60 px-3 py-2 transition-colors hover:bg-amber-50/50 ${
         item.checked ? 'opacity-45' : ''
-      }`}
+      } ${highlighted ? 'bg-green-50/70' : ''}`}
     >
       <button
         type="button"
@@ -28,7 +28,7 @@ function ItemRow({ item }: { item: InventoryItem }) {
         {item.checked && <Check size={10} />}
       </button>
 
-      <div className="shrink-0 text-terracotta-dark">
+      <div className={`shrink-0 ${highlighted ? 'text-green-600' : 'text-terracotta-dark'}`}>
         <Icon size={15} />
       </div>
 
@@ -91,22 +91,38 @@ function ItemRow({ item }: { item: InventoryItem }) {
 
 export function InventoryNote() {
   const [showAddDialog, setShowAddDialog] = useState(false)
-  const { items, searchQuery, setSearchQuery, getTotalWeight } = useInventoryStore()
+  const {
+    items,
+    searchQuery,
+    setSearchQuery,
+    getTotalWeight,
+    selectedCompartmentId,
+    clearSelection,
+    compartments,
+  } = useInventoryStore()
   const totalWeight = getTotalWeight()
+  const selectedCompartment = compartments.find((c) => c.id === selectedCompartmentId)
 
   const filteredItems = useMemo(() => {
     const query = searchQuery.toLowerCase().trim()
-    if (!query) return items
-    return items.filter(
-      (item) =>
-        item.name.toLowerCase().includes(query) ||
-        useInventoryStore
-          .getState()
-          .compartments.find((c) => c.id === item.compartmentId)
-          ?.name.toLowerCase()
-          .includes(query),
-    )
-  }, [items, searchQuery])
+    let result = items
+    if (query) {
+      result = items.filter(
+        (item) =>
+          item.name.toLowerCase().includes(query) ||
+          compartments.find((c) => c.id === item.compartmentId)?.name.toLowerCase().includes(query),
+      )
+    }
+    // Sort items of selected compartment to top
+    if (selectedCompartmentId) {
+      return [...result].sort((a, b) => {
+        const aMatch = a.compartmentId === selectedCompartmentId ? -1 : 1
+        const bMatch = b.compartmentId === selectedCompartmentId ? -1 : 1
+        return aMatch - bMatch
+      })
+    }
+    return result
+  }, [items, searchQuery, selectedCompartmentId, compartments])
 
   return (
     <>
@@ -124,6 +140,23 @@ export function InventoryNote() {
             <span>{totalWeight.toFixed(1)} kg</span>
           </div>
         </div>
+
+        {/* Ausgewähltes Fach */}
+        {selectedCompartment && (
+          <div className="flex items-center justify-between border-b border-paper-line bg-green-50 px-3 py-1.5">
+            <span className="flex items-center gap-1.5 text-xs font-medium text-green-700">
+              <MapPin size={11} />
+              {selectedCompartment.name}
+            </span>
+            <button
+              type="button"
+              onClick={clearSelection}
+              className="rounded p-0.5 text-green-700 hover:bg-green-100"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        )}
 
         {/* Suchleiste */}
         <div className="flex items-center gap-2 border-b border-paper-line bg-white/60 px-3 py-2">
@@ -145,7 +178,13 @@ export function InventoryNote() {
               <p className="mt-1 text-xs">Klicke auf +, um Gegenstände hinzuzufügen.</p>
             </div>
           ) : (
-            filteredItems.map((item) => <ItemRow key={item.id} item={item} />)
+            filteredItems.map((item) => (
+              <ItemRow
+                key={item.id}
+                item={item}
+                highlighted={item.compartmentId === selectedCompartmentId}
+              />
+            ))
           )}
         </div>
 

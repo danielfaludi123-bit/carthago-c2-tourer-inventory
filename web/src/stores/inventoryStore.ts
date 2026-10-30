@@ -5,13 +5,14 @@ import { compartments } from '../data/compartments'
 
 interface InventoryStore extends AppState {
   selectItem: (id: string | null) => void
+  selectCompartment: (id: string | null) => void
+  clearSelection: () => void
   setSearchQuery: (query: string) => void
   addItem: (item: Omit<InventoryItem, 'id'>) => void
   removeItem: (id: string) => void
   updateQuantity: (id: string, delta: number) => void
   toggleChecked: (id: string) => void
   updateItemWeight: (id: string, weightKg: number) => void
-  toggleFlap: (compartmentId: string) => void
   getItemById: (id: string) => InventoryItem | undefined
   getItemsByCompartment: (compartmentId: string) => InventoryItem[]
   getTotalWeight: () => number
@@ -26,6 +27,7 @@ export const useInventoryStore = create<InventoryStore>()(
       compartments,
       items: [],
       selectedItemId: null,
+      selectedCompartmentId: null,
       searchQuery: '',
       openFlaps: [],
 
@@ -33,17 +35,37 @@ export const useInventoryStore = create<InventoryStore>()(
         if (id) {
           const item = get().items.find((i) => i.id === id)
           if (item) {
-            set((state) => ({
+            set({
               selectedItemId: id,
-              openFlaps: state.openFlaps.includes(item.compartmentId)
-                ? state.openFlaps
-                : [...state.openFlaps, item.compartmentId],
-            }))
+              selectedCompartmentId: item.compartmentId,
+              openFlaps: [item.compartmentId],
+            })
             return
           }
         }
-        set({ selectedItemId: id })
+        set({ selectedItemId: null })
       },
+
+      selectCompartment: (id) => {
+        if (!id) {
+          set({ selectedCompartmentId: null, openFlaps: [] })
+          return
+        }
+        const alreadySelected = get().selectedCompartmentId === id
+        if (alreadySelected) {
+          set({ selectedCompartmentId: null, selectedItemId: null, openFlaps: [] })
+          return
+        }
+        set({
+          selectedCompartmentId: id,
+          selectedItemId: null,
+          openFlaps: [id],
+        })
+      },
+
+      clearSelection: () =>
+        set({ selectedItemId: null, selectedCompartmentId: null, openFlaps: [] }),
+
       setSearchQuery: (query) => set({ searchQuery: query }),
 
       addItem: (item) =>
@@ -82,13 +104,6 @@ export const useInventoryStore = create<InventoryStore>()(
           ),
         })),
 
-      toggleFlap: (compartmentId) =>
-        set((state) => ({
-          openFlaps: state.openFlaps.includes(compartmentId)
-            ? state.openFlaps.filter((id) => id !== compartmentId)
-            : [...state.openFlaps, compartmentId],
-        })),
-
       getItemById: (id) => get().items.find((item) => item.id === id),
 
       getItemsByCompartment: (compartmentId) =>
@@ -106,7 +121,7 @@ export const useInventoryStore = create<InventoryStore>()(
           .reduce((sum, item) => sum + (item.weightKg || 0) * item.quantity, 0),
     }),
     {
-      name: 'carthago-inventory-v3',
+      name: 'carthago-inventory-v4',
     },
   ),
 )

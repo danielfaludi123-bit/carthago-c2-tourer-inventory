@@ -100,18 +100,11 @@ function Flap({
   const pivotRef = useRef<THREE.Group>(null)
   const meshRef = useRef<THREE.Mesh>(null)
   const { invalidate } = useThree()
-  const selectItem = useInventoryStore((state) => state.selectItem)
-  const selectedItemId = useInventoryStore((state) => state.selectedItemId)
-  const items = useInventoryStore((state) => state.items)
+  const selectCompartment = useInventoryStore((state) => state.selectCompartment)
+  const selectedCompartmentId = useInventoryStore((state) => state.selectedCompartmentId)
   const openFlaps = useInventoryStore((state) => state.openFlaps)
-  const toggleFlap = useInventoryStore((state) => state.toggleFlap)
 
-  const isSelected = useMemo(() => {
-    if (!selectedItemId) return false
-    const item = items.find((i) => i.id === selectedItemId)
-    return item?.compartmentId === compartmentId
-  }, [selectedItemId, items, compartmentId])
-
+  const isSelected = selectedCompartmentId === compartmentId
   const isOpen = openFlaps.includes(compartmentId)
 
   const baseMat = useMemo(() => stdMaterial(color), [color])
@@ -133,11 +126,7 @@ function Flap({
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation()
-    toggleFlap(compartmentId)
-    const item = items.find((i) => i.compartmentId === compartmentId)
-    if (item) {
-      selectItem(item.id)
-    }
+    selectCompartment(compartmentId)
   }
 
   return (

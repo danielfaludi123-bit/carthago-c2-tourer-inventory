@@ -22,6 +22,7 @@ export interface AppState {
   compartments: Compartment[]
   items: InventoryItem[]
   selectedItemId: string | null
+  selectedCompartmentId: string | null
   searchQuery: string
   openFlaps: string[]
 }
