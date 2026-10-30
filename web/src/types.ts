@@ -1,12 +1,11 @@
+export type CompartmentSide = 'left' | 'right' | 'rear' | 'front' | 'roof'
+
 export interface Compartment {
   id: string
   name: string
   meshName: string
   icon: string
-  // Camera position for this compartment (world coordinates)
-  cameraPosition: [number, number, number]
-  // Where the camera should look at
-  cameraTarget: [number, number, number]
+  side: CompartmentSide
 }
 
 export interface InventoryItem {
@@ -24,4 +23,5 @@ export interface AppState {
   items: InventoryItem[]
   selectedItemId: string | null
   searchQuery: string
+  openFlaps: string[]
 }
